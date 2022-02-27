@@ -15,7 +15,7 @@ from aiogram.types import ParseMode, ContentType
 
 from keyboards import *
 
-API_TOKEN = '5257172731:AAExwvClW6Qc_bGgkAHT-H-8qITPSwGGnrw'
+API_TOKEN = '5174048507:AAETwce-zQjx_wATisMOsDOrfeT08RToHjw'
 
 logging.basicConfig(level=logging.INFO)
 
