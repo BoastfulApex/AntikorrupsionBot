@@ -1,7 +1,12 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 
 
 async def languages_keyboard():
+    keyboard = ReplyKeyboardMarkup()
+    key1 = KeyboardButton(text="🇺🇿O‘zbek tili", )
+    key2 = KeyboardButton(text="🇷🇺Русский язык", )
+    keyboard.add(key1, key2)
+    keyboard.resize_keyboard = True
     markup = InlineKeyboardMarkup(
         inline_keyboard=
         [
@@ -11,14 +16,17 @@ async def languages_keyboard():
             ],
         ]
     )
-    return markup
+    return keyboard
 
 
 async def agree_keyboard(lang):
     if lang == "uz":
-        text = ['Roziman ', "Orqaga"]
+        text = ['Roziman', "Orqaga"]
     else:
-        text = ['Я согласен ', "Назад"]
+        text = ['Я согласен', "Назад"]
+    keyboard = ReplyKeyboardMarkup()
+    keyboard.add(KeyboardButton(text=f"✅{text[0]}"), KeyboardButton(text=f"⬅️{text[1]}"))
+    keyboard.resize_keyboard = True
     markup = InlineKeyboardMarkup(
         inline_keyboard=
         [
@@ -28,7 +36,7 @@ async def agree_keyboard(lang):
             ],
         ]
     )
-    return markup
+    return keyboard
 
 
 async def choose_keyboard(lang):
@@ -36,6 +44,12 @@ async def choose_keyboard(lang):
         text = ["Taklif va tavsiyalar yuborish", "Murojaat va shikoyatlar yuborish", "Boshqa masalalar"]
     else:
         text = ["Отправить предложения и рекомендации", "Подать заявку и пожаловаться", "Другие вопросы"]
+    keyboard = ReplyKeyboardMarkup()
+    keyboard.add(KeyboardButton(text=f"🖊 {text[0]}"))
+    keyboard.add(KeyboardButton(text=f"📩 {text[1]}"))
+    keyboard.add(KeyboardButton(text=f"📝 {text[2]}"))
+    keyboard.resize_keyboard = True
+
     markup = InlineKeyboardMarkup(
         inline_keyboard=
         [
@@ -45,7 +59,7 @@ async def choose_keyboard(lang):
             [InlineKeyboardButton(text=f"{text[2]}", callback_data="boshqa")],
         ]
     )
-    return markup
+    return keyboard
 
 
 async def check_legal(lang):
@@ -53,6 +67,9 @@ async def check_legal(lang):
         text = ["Физическое лицо", "Юридическое лицо"]
     else:
         text = ["Jismoniy shaxs", "Yuridik shaxs"]
+    keyboard = ReplyKeyboardMarkup()
+    keyboard.add(KeyboardButton(text=f"👤 {text[0]}"), KeyboardButton(text=f"💼 {text[1]}"))
+    keyboard.resize_keyboard = True
     markup = InlineKeyboardMarkup(
         inline_keyboard=
         [
@@ -62,7 +79,7 @@ async def check_legal(lang):
             ],
         ]
     )
-    return markup
+    return keyboard
 
 
 async def confirm_keyboard(lang):
@@ -70,6 +87,11 @@ async def confirm_keyboard(lang):
         text = ['Murojaatni yuborish', "Orqaga"]
     else:
         text = ['Отправлять', "Назад"]
+    keyboard = ReplyKeyboardMarkup()
+    keyboard.add(KeyboardButton(text=f"✅ {text[0]}"))
+    keyboard.add(KeyboardButton(text=f"⬅️{text[1]}"))
+    keyboard.resize_keyboard = True
+
     markup = InlineKeyboardMarkup(
         inline_keyboard=
         [
@@ -77,7 +99,7 @@ async def confirm_keyboard(lang):
             [InlineKeyboardButton(text=f"⬅️{text[1]}", callback_data="cancel")]
         ]
     )
-    return markup
+    return keyboard
 
 
 async def cancel_keyboard(lang):
@@ -85,10 +107,13 @@ async def cancel_keyboard(lang):
         text = ["O'tkazib yuborish"]
     else:
         text = ['Пропустить']
+    keyboard = ReplyKeyboardMarkup()
+    keyboard.add(KeyboardButton(text=f"🔜{text[0]}"))
+    keyboard.resize_keyboard = True
     markup = InlineKeyboardMarkup(
         inline_keyboard=
         [
             [InlineKeyboardButton(text=f"✅{text[0]}", callback_data="cancel")],
         ]
     )
-    return markup
+    return keyboard

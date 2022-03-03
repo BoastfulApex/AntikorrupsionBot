@@ -15,7 +15,7 @@ from aiogram.types import ParseMode, ContentType
 
 from keyboards import *
 
-API_TOKEN = '5257172731:AAExwvClW6Qc_bGgkAHT-H-8qITPSwGGnrw'
+API_TOKEN = '1825629775:AAHXI8_JonznuHT2MMa4hpkfzArmy3rouoM'
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,16 +29,16 @@ async def send_welcome(message: types.Message, state: FSMContext):
     await state.update_data(user_id=user_id, username=message.from_user.username)
     await state.set_state("get_lang")
     markup = await languages_keyboard()
-    await message.reply("Tilni tanlang/ <b>Выберите язык</b>", reply_markup=markup, parse_mode=ParseMode.HTML)
+    await message.reply("Tilni tanlang/ Выберите язык", reply_markup=markup, parse_mode=ParseMode.HTML)
 
 
-@dp.callback_query_handler(state="get_lang")
-async def agree(call: types.CallbackQuery, state: FSMContext):
-    call_data = call.data
-    user_id = call.from_user.id
-    await state.update_data(lang=call_data)
-    markup = await agree_keyboard(call_data)
-    if call_data == 'ru':
+@dp.message_handler(state="get_lang")
+async def agree(message: types.Message, state: FSMContext):
+    call_data = message.text
+    user_id = message.from_user.id
+    if call_data == '🇷🇺Русский язык':
+        markup = await agree_keyboard("ru")
+        await state.update_data(lang="ru")
         text = "Здравствуйте, добро пожаловать на бота, созданного для борьбы с коррупцией и антикоррупционной " \
                "деятельности в сфере туризма!\n\n<b>Важный!</b> Закон Республики Узбекистан «<b>О персональных данных</b>» " \
                "предусматривает трансграничную передачу данных физических лиц только при наличии согласия физических " \
@@ -46,6 +46,8 @@ async def agree(call: types.CallbackQuery, state: FSMContext):
                "@turizm_va_sport_vazirligi_антикоррупция_бота (@motas_antikor_bot) в соответствии с данным законом, " \
                "вы должны дать согласие на использование вашей личной информации. "
     else:
+        markup = await agree_keyboard("uz")
+        await state.update_data(lang="uz")
         text = "Assalomu alaykum, Turizm va sport sohasida korrupsion holatlarni va korrupsiyaga doir faoliyatlarga " \
                "qarshi kurashish uchun yaratilgan botga xush kelibsiz! \n\n<b>Muxim!</b> Jismoniy shaxslarning o‘z shaxsiga " \
                "ta’luqli ma’lumotlarini transchegaraviy uzatishga roziligi mavjud bo‘lgan taqdirdagina ma’lumotlarni " \
@@ -53,73 +55,88 @@ async def agree(call: types.CallbackQuery, state: FSMContext):
                "ma’lumotlar to‘g‘risida”gi Qonunda nazarda tutilgan. \n\nMazkur qonunga asosan " \
                "@turizm_va_sport_vazirligi_anticorruption_bot (@motas_antikor_bot) dan foydalanish uchun Sizning " \
                "shaxsingizga doir ma’lumotlaringizdan foydalanishga rozilik bildirishingiz lozim. "
-    await call.message.delete()
     await bot.send_message(chat_id=user_id, text=text, parse_mode=ParseMode.HTML, reply_markup=markup)
     await state.set_state("choose")
 
 
-@dp.callback_query_handler(state='choose')
-async def choose(call: types.CallbackQuery, state: FSMContext):
+@dp.message_handler(state='choose')
+async def choose(message: types.Message, state: FSMContext):
     data = await state.get_data()
+    text = message.text
     lang = data.get("lang")
     if lang == "uz":
+        if text == "✅Roziman":
+            data = "confirm"
+        else:
+            data = "cancel"
         text = "Ma’qul variantni tanlang:"
     else:
+        if text == "✅Я согласен":
+            data = "confirm"
+        else:
+            data = "cancel"
         text = "Выберите нужный вариант:"
 
-    data = call.data
     if data == "confirm":
         markup = await choose_keyboard(lang)
-        await call.message.edit_text(text=text, reply_markup=markup)
+        await bot.send_message(chat_id=message.from_user.id, text=text, reply_markup=markup)
         await state.set_state("legal")
     else:
         markup = await languages_keyboard()
-        await call.message.edit_text("Tilni tanlang/ <b>Выберите язык</b>", reply_markup=markup,
-                                     parse_mode=ParseMode.HTML)
+        await bot.send_message(chat_id=message.from_user.id, text="Tilni tanlang/ Выберите язык", reply_markup=markup,
+                               parse_mode=ParseMode.HTML)
         await state.set_state("get_lang")
 
 
-@dp.callback_query_handler(state="legal")
-async def legal(call: types.CallbackQuery, state: FSMContext):
+@dp.message_handler(state="legal")
+async def legal(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    call_data = call.data
+    text_message = message.text
     lang = data.get("lang")
     if lang == "uz":
         text = "Shaxs turini tanlang:"
     else:
         text = "Выберите тип лица:"
     markup = await check_legal(lang)
-    await state.update_data(choose=call_data)
-    await call.message.edit_text(text, reply_markup=markup)
+    await state.update_data(choose=text_message)
+    await bot.send_message(chat_id=message.from_user.id, text=text, reply_markup=markup)
     await state.set_state("name")
 
 
-@dp.callback_query_handler(state="name")
-async def get_name(call: types.CallbackQuery, state: FSMContext):
-    call_data = call.data
+@dp.message_handler(state="name")
+async def get_name(message: types.Message, state: FSMContext):
+    message_text = message.text
     data = await state.get_data()
     lang = data.get("lang")
+    datacha = ''
     choosing = data.get("choose")
-    if choosing == "taklif":
+    if lang == "uz":
+        if choosing == "🖊 Taklif va tavsiyalar yuborish":
+            datacha = "taklif"
+        elif choosing == "📩 Murojaat va shikoyatlar yuborish":
+            datacha = "murojaat"
+        else:
+            datacha = "boshqa"
+    if datacha == "taklif":
         if lang == "uz":
             text = "Taklif va tavsiyalar beruvchi F.I.Sh / yuridik shaxs nomini kiriting"
         else:
             text = "Введите ФИО лица, делающего предложение и рекомендации Ф.И.Ш/юридическое лицо"
-        await call.message.edit_text(text)
+        await bot.send_message(chat_id=message.from_user.id, text=text, reply_markup=types.ReplyKeyboardRemove())
         await state.set_state("get_name")
-    elif choosing == "murojaat":
+    elif datacha == "murojaat":
         if lang == "uz":
             text = "Murojaat va shikoyatlar beruvchi F.I.Sh / yuridik shaxs nomini kiriting"
         else:
             text = "Введите наименование Ф.И.Ш/юридического лица, подающего жалобу и претензии"
-        await call.message.edit_text(text)
+        await bot.send_message(chat_id=message.from_user.id, text=text, reply_markup=types.ReplyKeyboardRemove())
         await state.set_state("location")
     else:
         if lang == "uz":
             text = "Murojaat va shikoyatlar beruvchi F.I.Sh / yuridik shaxs nomini kiriting"
         else:
             text = "Введите наименование Ф.И.Ш/юридического лица, подающего жалобу и претензии"
-        await call.message.edit_text(text)
+        await bot.send_message(chat_id=message.from_user.id, text=text, reply_markup=types.ReplyKeyboardRemove())
         await state.set_state("location")
 
 
@@ -130,9 +147,9 @@ async def get_name(message: types.Message, state: FSMContext):
     name = message.text
     await state.update_data(name=name)
     if lang == "uz":
-        text = "Telefon raqamingiz "
+        text = "📞 Telefon raqamingiz "
     else:
-        text = "Ваш номер телефона"
+        text = "📞 Ваш номер телефона"
     await bot.send_message(chat_id=message.from_user.id, text=text)
     await state.set_state("phone")
 
@@ -144,9 +161,9 @@ async def get_location(message: types.Message, state: FSMContext):
     name = message.text
     await state.update_data(name=name)
     if lang == "uz":
-        text = "Manzilingizni kiriting"
+        text = "📍 Manzilingizni kiriting"
     else:
-        text = "Введите свой адрес"
+        text = "📍 Введите свой адрес"
     await bot.send_message(chat_id=message.from_user.id, text=text)
     await state.set_state("get_address")
 
@@ -160,7 +177,7 @@ async def get_address(message: types.Message, state: FSMContext):
     if lang == "uz":
         text = "Telefon raqamingiz "
     else:
-        text = "Ваш номер телефона"
+        text = "📞 Ваш номер телефона"
     await bot.send_message(chat_id=message.from_user.id, text=text)
     await state.set_state("phone")
 
@@ -170,9 +187,9 @@ async def get_phone(message: types.Message, state: FSMContext):
     data = await state.get_data()
     lang = data.get("lang")
     if lang == "uz":
-        text = "Murojaat matnini kiriting"
+        text = "📄 Murojaat matnini kiriting"
     else:
-        text = "Введите текст сообщения"
+        text = "📄 Введите текст сообщения"
     phone = message.text
     await state.update_data(phone=phone)
     await bot.send_message(chat_id=message.from_user.id, text=text)
@@ -200,12 +217,19 @@ async def main_document(message: types.Message, state: FSMContext):
     data = await state.get_data()
     name = message.document.file_name
     await message.document.download(destination=f"files/{name}")
-    text = f"<b>Kimdan: </b> {data.get('name')}\n" \
-           f"<b>Tel: </b> {data.get('phone')}\n" \
-           f"<b>username: </b> {data.get('username')}\n" \
-           f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
-           f"<b>Murojaaj matni: </b> {data.get('main_text')}\n" \
-           f""
+    lang = data.get("lang")
+    if lang == 'uz':
+        text = f"<b>Kimdan: </b> {data.get('name')}\n" \
+               f"<b>Tel: </b> {data.get('phone')}\n" \
+               f"<b>username: </b> @{data.get('username')}\n" \
+               f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
+               f"<b>Murojaat matni: </b> {data.get('main_text')}\n"
+    else:
+        text = f"<b>От кого: </b> {data.get('name')}\n" \
+               f"<b>Тел: </b> {data.get('phone')}\n" \
+               f"<b>имя пользователя: </b> @{data.get('username')}\n" \
+               f"<b>Тип: </b> {data.get('choose')}\n" \
+               f"<b>Текст: </b> {data.get('main_text')}\n"
     await state.update_data(body=text, file_name=name, file_type="only")
     markup = await confirm_keyboard(data.get('lang'))
     await bot.send_document(chat_id=message.from_user.id, document=file_id, caption=text, reply_markup=markup,
@@ -219,12 +243,19 @@ async def main_photo(message: types.Message, state: FSMContext):
     data = await state.get_data()
     file_name = f"{file_id}.jpg"
     await message.photo[-1].download(destination=f"files/{file_id}.jpg")
-    text = f"<b>Kimdan: </b> {data.get('name')}\n" \
-           f"<b>Tel: </b> {data.get('phone')}\n" \
-           f"<b>username: </b> @{data.get('username')}\n" \
-           f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
-           f"<b>Murojaaj matni: </b> {data.get('main_text')}\n" \
-           f""
+    lang = data.get("lang")
+    if lang == 'uz':
+        text = f"<b>Kimdan: </b> {data.get('name')}\n" \
+               f"<b>Tel: </b> {data.get('phone')}\n" \
+               f"<b>username: </b> @{data.get('username')}\n" \
+               f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
+               f"<b>Murojaat matni: </b> {data.get('main_text')}\n"
+    else:
+        text = f"<b>От кого: </b> {data.get('name')}\n" \
+               f"<b>Тел: </b> {data.get('phone')}\n" \
+               f"<b>имя пользователя: </b> @{data.get('username')}\n" \
+               f"<b>Тип: </b> {data.get('choose')}\n" \
+               f"<b>Текст: </b> {data.get('main_text')}\n"
     await state.update_data(body=text, file_name=file_name, file_type="only")
     markup = await confirm_keyboard(data.get('lang'))
     await bot.send_photo(chat_id=message.from_user.id, photo=file_id, caption=text, reply_markup=markup,
@@ -237,12 +268,19 @@ async def main_video(message: types.Message, state: FSMContext):
     file_id = message.video.file_id
     data = await state.get_data()
     await message.video.download(destination=f"files/{message.video.file_name}")
-    text = f"<b>Kimdan: </b> {data.get('name')}\n" \
-           f"<b>Tel: </b> {data.get('phone')}\n" \
-           f"<b>username: </b> @{data.get('username')}\n" \
-           f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
-           f"<b>Murojaaj matni: </b> {data.get('main_text')}\n" \
-           f""
+    lang = data.get("lang")
+    if lang == 'uz':
+        text = f"<b>Kimdan: </b> {data.get('name')}\n" \
+               f"<b>Tel: </b> {data.get('phone')}\n" \
+               f"<b>username: </b> @{data.get('username')}\n" \
+               f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
+               f"<b>Murojaat matni: </b> {data.get('main_text')}\n"
+    else:
+        text = f"<b>От кого: </b> {data.get('name')}\n" \
+               f"<b>Тел: </b> {data.get('phone')}\n" \
+               f"<b>имя пользователя: </b> @{data.get('username')}\n" \
+               f"<b>Тип: </b> {data.get('choose')}\n" \
+               f"<b>Текст: </b> {data.get('main_text')}\n"
     await state.update_data(body=text, file_name=message.video.file_name, file_type="only")
     dat = await state.get_data()
     markup = await confirm_keyboard(data.get('lang'))
@@ -257,12 +295,19 @@ async def main_audio(message: types.Message, state: FSMContext):
     file_name = f"{file_id}.ogg"
     data = await state.get_data()
     await message.voice.download(destination=f"files/{file_id}.ogg")
-    text = f"<b>Kimdan: </b> {data.get('name')}\n" \
-           f"<b>Tel: </b> {data.get('phone')}\n" \
-           f"<b>username: </b> @{data.get('username')}\n" \
-           f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
-           f"<b>Murojaaj matni: </b> {data.get('main_text')}\n" \
-           f""
+    lang = data.get("lang")
+    if lang == 'uz':
+        text = f"<b>Kimdan: </b> {data.get('name')}\n" \
+               f"<b>Tel: </b> {data.get('phone')}\n" \
+               f"<b>username: </b> @{data.get('username')}\n" \
+               f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
+               f"<b>Murojaat matni: </b> {data.get('main_text')}\n"
+    else:
+        text = f"<b>От кого: </b> {data.get('name')}\n" \
+               f"<b>Тел: </b> {data.get('phone')}\n" \
+               f"<b>имя пользователя: </b> @{data.get('username')}\n" \
+               f"<b>Тип: </b> {data.get('choose')}\n" \
+               f"<b>Текст: </b> {data.get('main_text')}\n"
     await state.update_data(body=text, file_name=message.video.file_name, file_type="only")
     markup = await confirm_keyboard(data.get('lang'))
     await bot.send_voice(chat_id=message.from_user.id, voice=file_id, caption=text, reply_markup=markup,
@@ -275,12 +320,19 @@ async def main_audio(message: types.Message, state: FSMContext):
     data = await state.get_data()
     audio = message.audio
     await message.audio.download(destination=f"files/{audio.file_name}")
-    text = f"<b>Kimdan: </b> {data.get('name')}\n" \
-           f"<b>Tel: </b> {data.get('phone')}\n" \
-           f"<b>username: </b> @{data.get('username')}\n" \
-           f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
-           f"<b>Murojaaj matni: </b> {data.get('main_text')}\n" \
-           f""
+    lang = data.get("lang")
+    if lang == 'uz':
+        text = f"<b>Kimdan: </b> {data.get('name')}\n" \
+               f"<b>Tel: </b> {data.get('phone')}\n" \
+               f"<b>username: </b> @{data.get('username')}\n" \
+               f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
+               f"<b>Murojaat matni: </b> {data.get('main_text')}\n"
+    else:
+        text = f"<b>От кого: </b> {data.get('name')}\n" \
+               f"<b>Тел: </b> {data.get('phone')}\n" \
+               f"<b>имя пользователя: </b> @{data.get('username')}\n" \
+               f"<b>Тип: </b> {data.get('choose')}\n" \
+               f"<b>Текст: </b> {data.get('main_text')}\n"
     await state.update_data(body=text, file_name=message.audio.file_name, file_type="only")
     markup = await confirm_keyboard(data.get('lang'))
     await bot.send_audio(chat_id=message.from_user.id, audio=audio.file_id, caption=text, reply_markup=markup,
@@ -288,35 +340,51 @@ async def main_audio(message: types.Message, state: FSMContext):
     await state.set_state("for_end")
 
 
-@dp.callback_query_handler(state="main_file")
-async def cancel_file(call: types.CallbackQuery, state: FSMContext):
+@dp.message_handler(state="main_file", content_types=types.ContentType.TEXT)
+async def cancel_file(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    text = f"<b>Kimdan: </b> {data.get('name')}\n" \
-           f"<b>Tel: </b> {data.get('phone')}\n" \
-           f"<b>username: </b> @{data.get('username')}\n" \
-           f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
-           f"<b>Murojaaj matni: </b> {data.get('main_text')}\n" \
-           f""
+    lang = data.get('lang')
+    if lang == 'uz':
+        text = f"<b>Kimdan: </b> {data.get('name')}\n" \
+               f"<b>Tel: </b> {data.get('phone')}\n" \
+               f"<b>username: </b> @{data.get('username')}\n" \
+               f"<b>Murojaaj turi: </b> {data.get('choose')}\n" \
+               f"<b>Murojaat matni: </b> {data.get('main_text')}\n"
+    else:
+        text = f"<b>От кого: </b> {data.get('name')}\n" \
+               f"<b>Тел: </b> {data.get('phone')}\n" \
+               f"<b>имя пользователя: </b> @{data.get('username')}\n" \
+               f"<b>Тип: </b> {data.get('choose')}\n" \
+               f"<b>Текст: </b> {data.get('main_text')}\n"
     await state.update_data(body=text, file_name="")
     markup = await confirm_keyboard(data.get('lang'))
-    await call.message.edit_text(text=text, reply_markup=markup, parse_mode=ParseMode.HTML)
+    await bot.send_message(chat_id=message.from_user.id, text=text, reply_markup=markup, parse_mode=ParseMode.HTML)
     await state.set_state("for_end")
 
 
-@dp.callback_query_handler(state="for_end")
-async def end(call: types.CallbackQuery, state: FSMContext):
-    call_data = call.data
+@dp.message_handler(state="for_end")
+async def end(message: types.Message, state: FSMContext):
+    message_text = message.text
     data = await state.get_data()
     body = data.get("body")
     lang = data.get("lang")
+    call_data = ""
     if lang == "uz":
+        if message_text == "✅ Murojaatni yuborish":
+            call_data = "confirm"
+        else:
+            call_data = "calcel"
         text = "Murojaat yuborildi"
     else:
+        if message_text == "✅ Отправлять":
+            call_data = "confirm"
+        else:
+            call_data = "calcel"
         text = "Обращение было отправлено"
-    await call.message.edit_text(text=text)
     file_type = data.get("file_type")
     file_name = data.get("file_name")
     if call_data == 'confirm':
+        await bot.send_message(chat_id=message.from_user.id, text=text, reply_markup=types.ReplyKeyboardRemove())
         sender_address = 'forbot2503@gmail.com'
         sender_pass = 'Wertus89'
         receiver_address = 'jahongirnormuminov8@gmail.com'
@@ -324,8 +392,6 @@ async def end(call: types.CallbackQuery, state: FSMContext):
         message['From'] = sender_address
         message['To'] = receiver_address
         message['Subject'] = 'Yangi murojaat'
-        # The subject line
-        # The body and the attachments for the mail
         message.attach(MIMEText(body, 'html'))
         if file_name != "":
             if file_type == "only":
@@ -349,7 +415,7 @@ async def end(call: types.CallbackQuery, state: FSMContext):
         else:
             text = "Прикрепите соответствующие файлы (видео, аудио, текст и т. д.)"
         markup = await cancel_keyboard(lang)
-        await call.message.edit_text(text=text, reply_markup=markup)
+        await bot.send_message(chat_id=message.from_user.id, text=text, reply_markup=markup)
         await state.set_state("main_file")
 
 
